@@ -9,7 +9,8 @@ from flask_login import login_user
 from flask_login import logout_user,login_required
 from . import auth
 from ..models import User
-from .forms import LoginForm
+from .forms import LoginForm,RegisterationForm
+from .. import db
 
 # 登入
 # 注意是methods而不是method，会报错TypeError: __init__() got an unexpected keyword argument 'method'
@@ -30,8 +31,22 @@ def login():
 
 # 登出
 @auth.route('/logout')
+# 这里的login_required就是所说的受保护的页面，只有已经登录的用户才可以访问，
+# 当匿名用户尝试访问时login_view会重定向到auth.login页面
 @login_required
 def logout():
     logout_user()
     flash('You have been logged out.')
     return redirect(url_for('main.index'))
+
+
+@auth.route('/register',methods=['GET','POST'])
+def register():
+    form = RegisterationForm()
+    if form.validate_on_submit():
+        user = User(email=form.email.data,username=form.username.data,password=form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('You can now login.')
+        return redirect(url_for('.login'))
+    return render_template('auth/register.html',form=form)
