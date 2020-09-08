@@ -13,6 +13,7 @@ from app.models import User
 from app.email import send_email
 from config import config
 import os
+from flask import current_app
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
@@ -24,8 +25,8 @@ def index():
             db.session.add(user)
             db.session.commit()
             session['known'] = False
-            if config[os.getenv('FLASK_CONFIG') or 'default'].FLASK_MAIL_ADMIN:
-                send_email(config[os.getenv('FLASK_CONFIG') or 'default'].FLASK_MAIL_ADMIN, 'New User', 'mail/new_user', user=user)
+            if current_app.config['FLASK_MAIL_ADMIN']:
+                send_email(current_app.config['FLASK_MAIL_ADMIN'], 'New User', 'mail/new_user', user=user)
         else:
             session['known'] = True
         session['name'] = form.name.data

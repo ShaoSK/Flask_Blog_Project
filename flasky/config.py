@@ -8,11 +8,14 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
+    ## Flask-WTF无需在应用层初始化，但要求配置一个密钥，SECRET_KEY
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess'
-    MAIN_SERVER = os.environ.get('MAIL_SERVER','smtp.qq.com')
+    ## !!!!!!!!!这里写错过一次！，将MAIL_SERVER写成了MAILN_SERVER
+    MAIL_SERVER = 'smtp.qq.com'
     MAIL_PORT = int(os.environ.get('MAIL_PORT','587'))
     MAIL_USE_TLS = os.environ.get('MAIN_USE_TLS','true').lower() in ['true','on','1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     FLASK_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASK_MAIL_SENDER = '1165850025@qq.com'
