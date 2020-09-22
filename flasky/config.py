@@ -21,7 +21,7 @@ class Config:
     FLASK_MAIL_SENDER = '1165850025@qq.com'
     FLASK_MAIL_ADMIN = os.environ.get('FLASK_ADMIN')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
+    FLASK_ADMIN = os.environ.get('FLASK_ADMIN')
     @staticmethod
     def init_app(app):
         pass

@@ -14,6 +14,9 @@ from app.email import send_email
 from config import config
 import os
 from flask import current_app
+from flask_login import login_required, current_user
+from ..decorators import admin_required,permission_required
+from ..models import Permission
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
@@ -35,3 +38,14 @@ def index():
         return redirect(url_for('.index'))
     return render_template('index.html',form=form,known=session.get('known', False),current_time=datetime.utcnow())
 
+@main.route('/admin')
+@login_required
+@admin_required
+def for_admin_only():
+    return "For administrators!"
+
+@main.route('/moderate')
+@login_required
+@permission_required(Permission.MODERATE)
+def for_moderator_only():
+    return "For comment moderators!"
