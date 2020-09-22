@@ -82,6 +82,8 @@ class User(UserMixin,db.Model):
             if self.role is None:
                 self.role=Role.query.filter_by(default=True).first()
     # 以下两个方法来检验用户是否具有某项权限
+    # 便于后续编写自定义装饰器，检查用户是否具有某项权限，让视图函数对于特定的用户开放
+    # 并且这里定义了匿名用户类，并且将他赋给了login_manager，用来对未登录的用户开放某些权限的视图函数
     def can(self,perm):
         # !!!在User类中调用Role中的方法# 从这里可以看到在Role模型中反向在User模型中定义的role属性在这里就派上了用场,role代表一个个的类实例
         return self.role is not None and self.role.has_permission(perm)
