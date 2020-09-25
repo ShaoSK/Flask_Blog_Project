@@ -9,6 +9,7 @@ from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from flask_login import UserMixin,AnonymousUserMixin
+from datetime import datetime
 
 class Role(db.Model):
     __tablename__='roles'
@@ -61,6 +62,7 @@ class Role(db.Model):
     def __repr__(self):
         return '<Role %r>' %self.name
 
+# 继承UserMixin，由Flask-login提供，is_authenticated，is_active，is_anonymous，get_id()都已经在这个类中实现了
 class User(UserMixin,db.Model):
     __tablename__='users'
     id = db.Column(db.Integer,primary_key=True)
@@ -72,6 +74,14 @@ class User(UserMixin,db.Model):
     password_hash=db.Column(db.String(128))
     # 增加账户确认字段
     confirmed = db.Column(db.Boolean,default=False)
+
+    # 添加用户额外信息，让用户资料更加丰富
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    # default参数可以接收函数作为默认值，每次需要生成默认值时，SQLAlchemy就会调用函数
+    member_since = db.Column(db.DateTime(),default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(),default=datetime.utcnow)
 
     # 重写init方法，在用户创建时，判断电子邮件是否是管理员，如果是，直接赋予管理员角色，而不是普通User角色
     def __init__(self,**kwargs):
@@ -89,6 +99,12 @@ class User(UserMixin,db.Model):
         return self.role is not None and self.role.has_permission(perm)
     def is_administrator(self):
         return self.can(Permission.ADMIN)
+
+    # 添加方法，每次刷新用户的访问时间
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
+        db.session.commit()
 
     @property
     def password(self):
