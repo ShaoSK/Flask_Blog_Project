@@ -16,28 +16,37 @@ import os
 from flask import current_app
 from flask_login import login_required, current_user
 from ..decorators import admin_required,permission_required
-from ..models import Permission
-from .forms import EditProfileForm,EditProfileAdminForm
+from ..models import Permission,Post
+from .forms import EditProfileForm,EditProfileAdminForm,PostForm
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
-    form = NameForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.name.data).first()
-        if user is None:
-            user = User(username=form.name.data)
-            db.session.add(user)
-            db.session.commit()
-            session['known'] = False
-            if current_app.config['FLASK_MAIL_ADMIN']:
-                send_email(current_app.config['FLASK_MAIL_ADMIN'], 'New User', 'mail/new_user', user=user)
-        else:
-            session['known'] = True
-        session['name'] = form.name.data
-        form.name.data = ''
-
+    # form = NameForm()
+    # if form.validate_on_submit():
+    #     user = User.query.filter_by(username=form.name.data).first()
+    #     if user is None:
+    #         user = User(username=form.name.data)
+    #         db.session.add(user)
+    #         db.session.commit()
+    #         session['known'] = False
+    #         if current_app.config['FLASK_MAIL_ADMIN']:
+    #             send_email(current_app.config['FLASK_MAIL_ADMIN'], 'New User', 'mail/new_user', user=user)
+    #     else:
+    #         session['known'] = True
+    #     session['name'] = form.name.data
+    #     form.name.data = ''
+    #
+    #     return redirect(url_for('.index'))
+    # return render_template('index.html',form=form,known=session.get('known', False),current_time=datetime.utcnow())
+    form = PostForm()
+    if current_user.can(Permission.WRITE) and form.validate_on_submit():
+        # author是User模型中添加到Post模型中的对象实例属性，所以需要使用_get_current_object()获取当前对象实例
+        post = Post(body=form.body.data,author=current_user._get_current_object())
+        db.session.add(post)
+        db.session.commit()
         return redirect(url_for('.index'))
-    return render_template('index.html',form=form,known=session.get('known', False),current_time=datetime.utcnow())
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index.html',form=form,posts=posts,current_time=datetime.utcnow())
 
 @main.route('/admin')
 @login_required
@@ -52,11 +61,13 @@ def for_moderator_only():
     return "For comment moderators!"
 
 # 为每一个用户创建资料可视化页面
+# 改动资料页面，用以获取用户发表的文章列表
 @main.route('/user/<username>')
 def user(username):
     #
     user = User.query.filter_by(username=username).first_or_404()
-    return render_template('user.html',user=user)
+    posts = user.posts.order_by(Post.timestamp.desc()).all()
+    return render_template('user.html',user=user,posts=posts)
 
 # 创建资料编辑路由
 @main.route('/edit-profile',methods=['GET','POST'])

@@ -87,6 +87,9 @@ class User(UserMixin,db.Model):
     # 用于记录每一个用户电子邮件的散列值，这样就不需要重复计算了
     avatar_hash = db.Column(db.String(32))
 
+    # 添加User的外键
+    posts = db.relationship('Post',backref='author',lazy='dynamic')
+
     # 重写init方法，在用户创建时，判断电子邮件是否是管理员，如果是，直接赋予管理员角色，而不是普通User角色
     def __init__(self,**kwargs):
         super(User, self).__init__(**kwargs)
@@ -165,6 +168,14 @@ class User(UserMixin,db.Model):
 
     def __repr__(self):
         return '<User %r>' %self.username
+
+# 创建新的数据库模型来支持博客文章
+class Post(db.Model):
+    __tablename__='posts'
+    id = db.Column(db.Integer,primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime,index=True,default=datetime.utcnow)
+    author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
 
 # 自定义的匿名用户类
 class AnonymousUser(AnonymousUserMixin):
