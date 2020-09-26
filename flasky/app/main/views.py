@@ -106,3 +106,11 @@ def edit_profile_admin(id):
     form.location.data = user.location
     form.about_me.data = user.about_me
     return render_template('edit_profile.html',form=form,user=user)
+
+# 定义路由，生成博客的url链接
+@main.route('/post/<int:id>')
+def post(id):
+    post = Post.query.get_or_404(id)
+    # 写成[post]的原因是index.html和user.html都使用了_posts.html，都以列表的形式 循环for in 展示了许多博客，
+    # post.html也使用了_posts.html，但只有 “一个” post,写成[post]方便在_posts.html调用
+    return render_template('post.html',posts=[post])

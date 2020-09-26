@@ -11,6 +11,8 @@ from flask import current_app,request
 from flask_login import UserMixin,AnonymousUserMixin
 from datetime import datetime
 import hashlib
+from markdown import markdown
+import bleach
 
 class Role(db.Model):
     __tablename__='roles'
@@ -176,6 +178,18 @@ class Post(db.Model):
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime,index=True,default=datetime.utcnow)
     author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
+    # 增加字段，在服务器端将客户端传来的markdown文本转换为html永久存储在数据库中，直接调用html显示即可
+    body_html = db.Column(db.Text)
+
+    @staticmethod
+    def on_change_body(target,value,oldvalue,initiator):
+        allowed_tags = ['a','abbr','acronym','b','blockquote','code','em','code','em','i','li','ol','pre','strong','ul','h1','h2','h3','p']
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value,output_format='html'),
+            tags=allowed_tags,strip=True
+        ))
+# 将Post的on_change_body方法注册到body字段，只要 body 字段设了新值，这个函数就会自动被调用
+db.event.listen(Post.body, 'set', Post.on_change_body)
 
 # 自定义的匿名用户类
 class AnonymousUser(AnonymousUserMixin):
