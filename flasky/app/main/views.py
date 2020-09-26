@@ -5,7 +5,7 @@
 # @Software: PyCharm
 
 from datetime import datetime
-from flask import render_template, session, redirect, url_for,flash,request
+from flask import render_template, session, redirect, url_for,flash,request,abort
 from . import main
 from .forms import NameForm
 from .. import db
@@ -114,3 +114,20 @@ def post(id):
     # 写成[post]的原因是index.html和user.html都使用了_posts.html，都以列表的形式 循环for in 展示了许多博客，
     # post.html也使用了_posts.html，但只有 “一个” post,写成[post]方便在_posts.html调用
     return render_template('post.html',posts=[post])
+
+# 博客文章编辑器路由
+@main.route('/edit/<int:id>',methods=['GET','POST'])
+@login_required
+def edit(id):
+    post = Post.query.get_or_404(id)
+    if current_user != post.author and not current_user.can(Permission.ADMIN):
+        abort(404)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.body = form.body.data
+        db.session.add(post)
+        db.session.commit()
+        flash("The post has been updated")
+        return redirect(url_for('.post',id=post.id))
+    form.body.data = post.body
+    return render_template('edit_post.html',form=form)

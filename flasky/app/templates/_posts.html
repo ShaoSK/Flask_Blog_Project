@@ -1,3 +1,4 @@
+{# 这也相当与是一个基html了，由user.html,index.html,post.html共同调用 #}
 <ul class="posts">
     {% for post in posts %}
     <li class="post">
@@ -27,7 +28,15 @@
                 <a href="{{ url_for('.post', id=post.id) }}">
                     <span class="label label-default">Permalink</span>
                 </a>
-
+                {% if current_user == post.author %}
+                <a href="{{ url_for('.edit',id=post.id) }}">
+                    <span class="label label-primary">Edit</span>
+                </a>
+                {% elif current_user.is_administrator() %}
+                <a href="{{ url_for('.edit',id=post.id) }}">
+                    <span class="label label-danger">Edit [Admin]</span>
+                </a>
+                {% endif %}
             </div>
 
         </div>
