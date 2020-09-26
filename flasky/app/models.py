@@ -7,9 +7,10 @@ from . import db
 from werkzeug.security import generate_password_hash,check_password_hash
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app,request
 from flask_login import UserMixin,AnonymousUserMixin
 from datetime import datetime
+import hashlib
 
 class Role(db.Model):
     __tablename__='roles'
@@ -83,6 +84,9 @@ class User(UserMixin,db.Model):
     member_since = db.Column(db.DateTime(),default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(),default=datetime.utcnow)
 
+    # 用于记录每一个用户电子邮件的散列值，这样就不需要重复计算了
+    avatar_hash = db.Column(db.String(32))
+
     # 重写init方法，在用户创建时，判断电子邮件是否是管理员，如果是，直接赋予管理员角色，而不是普通User角色
     def __init__(self,**kwargs):
         super(User, self).__init__(**kwargs)
@@ -91,6 +95,14 @@ class User(UserMixin,db.Model):
                 self.role=Role.query.filter_by(name='Administrator').first()
             if self.role is None:
                 self.role=Role.query.filter_by(default=True).first()
+        # 在初始化用户实例时，就调用计算散列值的函数，给avatar_hash赋值，用于在数据库中存储散列值
+        if self.email is not None and self.avatar_hash is None:
+            self.avatar_hash = self.gravatar_hash()
+
+    # 如果用户更新了email，则重新计算散列值并存储进数据库
+    def change_email(self,token):
+        pass
+
     # 以下两个方法来检验用户是否具有某项权限
     # 便于后续编写自定义装饰器，检查用户是否具有某项权限，让视图函数对于特定的用户开放
     # 并且这里定义了匿名用户类，并且将他赋给了login_manager，用来对未登录的用户开放某些权限的视图函数
@@ -105,6 +117,20 @@ class User(UserMixin,db.Model):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
         db.session.commit()
+
+    # 定义计算散列值的函数
+    def gravatar_hash(self):
+        return hashlib.md5(self.email.lower().encode('utf-8')).hexdigest()
+
+    # 添加方法，用于生成用户头像的url
+    def gravatar(self,size=100,default='identicon',ratting='g'):
+        if request.is_secure:
+            url = 'https://secure.gravatar.com/avatar'
+        else:
+            url = 'http://www.gravatar.com/avatar'
+        hash = self.gravatar_hash() or self.avatar_hash
+        return '{url}/{hash}?s={size}&d={default}&r={ratting}'.format(url=url,hash=hash,size=size,default=default,ratting=ratting)
+
 
     @property
     def password(self):
