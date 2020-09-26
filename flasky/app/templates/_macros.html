@@ -1,0 +1,37 @@
+{#构建分页导航,注意是导航,就是下面的那个条条，macro 是flask中的宏，类似于定义一个函数，供其他模板调用#}
+{% macro pagination_widget(pagination,endpoint) %}
+<ul class="pagination">
+    {# disabled是CSS的类 #}
+    <li {% if not pagination.has_prev %} class="disabled"{% endif %}>
+        {# href = # 连接当前页面 #}
+        <a href="{% if pagination.has_prev %}{{ url_for(endpoint,page=pagination.page - 1,**kwargs) }}{% else %}#{% endif %}">
+            {# 双小于号 #}
+            &laquo;
+        </a>
+    </li>
+    {% for p in pagination.iter_pages() %}
+        {% if p %}
+            {% if p == pagination.page %}
+            {# active CSS类，高亮显示，这里if的作用就是添加一个当前页面的高亮显示 #}
+            <li class="active">
+                <a href="{{ url_for(endpoint,page=p,**kwargs) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li>
+                <a href="{{ url_for(endpoint,page=p,**kwargs) }}">{{ p }}</a>
+            </li>
+            {% endif %}
+        {% else %}
+        {#&hellip省略号#}
+        <li class="disabled"><a href="#">&hellip;</a></li>
+        {% endif %}
+    {% endfor %}
+    <li {% if not pagination.has_next %} class="disabled"{% endif %}>
+        <a href="{% if pagination.has_next %}{{ url_for(endpoint,page=pagination.page + 1,**kwargs) }}{% else %}#{% endif %}">
+            {#双大于号#}
+            &raquo;
+        </a>
+    </li>
+</ul>
+{% endmacro %}
+

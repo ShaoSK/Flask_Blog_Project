@@ -5,7 +5,7 @@
 # @Software: PyCharm
 
 from datetime import datetime
-from flask import render_template, session, redirect, url_for,flash
+from flask import render_template, session, redirect, url_for,flash,request
 from . import main
 from .forms import NameForm
 from .. import db
@@ -21,23 +21,7 @@ from .forms import EditProfileForm,EditProfileAdminForm,PostForm
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
-    # form = NameForm()
-    # if form.validate_on_submit():
-    #     user = User.query.filter_by(username=form.name.data).first()
-    #     if user is None:
-    #         user = User(username=form.name.data)
-    #         db.session.add(user)
-    #         db.session.commit()
-    #         session['known'] = False
-    #         if current_app.config['FLASK_MAIL_ADMIN']:
-    #             send_email(current_app.config['FLASK_MAIL_ADMIN'], 'New User', 'mail/new_user', user=user)
-    #     else:
-    #         session['known'] = True
-    #     session['name'] = form.name.data
-    #     form.name.data = ''
-    #
-    #     return redirect(url_for('.index'))
-    # return render_template('index.html',form=form,known=session.get('known', False),current_time=datetime.utcnow())
+    # 更新首页路由，展示博客
     form = PostForm()
     if current_user.can(Permission.WRITE) and form.validate_on_submit():
         # author是User模型中添加到Post模型中的对象实例属性，所以需要使用_get_current_object()获取当前对象实例
@@ -45,8 +29,13 @@ def index():
         db.session.add(post)
         db.session.commit()
         return redirect(url_for('.index'))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template('index.html',form=form,posts=posts,current_time=datetime.utcnow())
+
+    # 修改首页路由，添加博客分页功能，也就是在每次查询数据库时，使用paginate函数返回一定数量的博客，返回的是一个Pagination类对象
+    page = request.args.get('page',1,type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page,per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],error_out=False)
+    posts = pagination.items
+    return render_template('index.html',form=form,posts=posts,pagination=pagination,current_time=datetime.utcnow())
 
 @main.route('/admin')
 @login_required

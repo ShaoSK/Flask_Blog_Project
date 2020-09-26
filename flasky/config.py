@@ -15,7 +15,8 @@ class Config:
     MAIL_PORT = int(os.environ.get('MAIL_PORT','587'))
     MAIL_USE_TLS = os.environ.get('MAIN_USE_TLS','true').lower() in ['true','on','1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-
+    # 分页配置，每一页展示多少博客数量
+    FLASKY_POSTS_PER_PAGE = 20
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     FLASK_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASK_MAIL_SENDER = '1165850025@qq.com'

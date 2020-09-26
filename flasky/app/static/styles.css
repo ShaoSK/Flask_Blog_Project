@@ -30,9 +30,13 @@ div.post-date {
 }
 div.post-author {
     font-weight: bold;
+    margin-left: 50px;
 }
 div.post-thumbnail {
     position: absolute;
+}
+div.post-body {
+    margin-left: 50px;
 }
 div.post-content {
     margin-left: 48px;
@@ -75,7 +79,7 @@ div.comment-form {
 }
 div.pagination {
     width: 100%;
-    text-align: right;
+    text-align: center;
     padding: 0px;
     margin: 0px;
 }
