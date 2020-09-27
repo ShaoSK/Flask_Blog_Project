@@ -65,6 +65,17 @@ class Role(db.Model):
     def __repr__(self):
         return '<Role %r>' %self.name
 
+# 普通的关联表已经能够完成多对多的映射，而不需要专门定义成模型，
+# 但是为了使用多对多关系时，能够存储多对多关系之间的额外信息(比如时间戳)，需要使用高级的关联表-模型
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 # 继承UserMixin，由Flask-login提供，is_authenticated，is_active，is_anonymous，get_id()都已经在这个类中实现了
 class User(UserMixin,db.Model):
     __tablename__='users'
@@ -91,6 +102,22 @@ class User(UserMixin,db.Model):
 
     # 添加User的外键
     posts = db.relationship('Post',backref='author',lazy='dynamic')
+
+    # 定义follow关系,设定两个一对多关系,注意这里的foreign_keys由于存在两个外键关系，所以需要指定一下对应关系，
+    # 另外[Follow.follower_id]一直报错Follow未定义，需要写成这种形式"[Follow.follower_id]"，这是因为把Follow的定义
+    # 放到了User后面。。。。。。
+    followed = db.relationship('Follow',
+                               foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+    # db.backref回引Follow模型,lazy参数设为joined,在一次数据库查询中完成两次查询users->follow->users
+    # # lazy='dynamic'在User一侧设置这个参数，关系属性不会直接返回记录，而是返回查询对象，可以添加过滤器
+    followers = db.relationship('Follow',
+                                foreign_keys=[Follow.followed_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
 
     # 重写init方法，在用户创建时，判断电子邮件是否是管理员，如果是，直接赋予管理员角色，而不是普通User角色
     def __init__(self,**kwargs):
@@ -136,6 +163,27 @@ class User(UserMixin,db.Model):
         hash = self.gravatar_hash() or self.avatar_hash
         return '{url}/{hash}?s={size}&d={default}&r={ratting}'.format(url=url,hash=hash,size=size,default=default,ratting=ratting)
 
+    # 定义关注操作的辅助方法
+    def follow(self,user):
+        if not self.is_following(user):
+            # 把Follow实例插入关联表
+            f = Follow(follower=self,followed=user)
+            db.session.add(f)
+
+    def unfollow(self,user):
+        f = self.followed.filter_by(follow_id=user.id).first()
+        if f:
+            db.session.delete(f)
+
+    def is_following(self,user):
+        if user.id is None:
+            return False
+        return self.followed.filter_by(followed_id = user.id).first() is not None
+
+    def is_followed_by(self,user):
+        if user.id is None:
+            return False
+        return self.followers.filter_by(follower_id=user.id).first() is not None
 
     @property
     def password(self):
