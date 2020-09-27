@@ -185,6 +185,13 @@ class User(UserMixin,db.Model):
             return False
         return self.followers.filter_by(follower_id=user.id).first() is not None
 
+    # 定义联结查询，返回一个用户关注的其他用户所发表的博客，join是联结操作，filter_by是过滤操作
+    @property
+    # 只读属性
+    def followed_posts(self):
+        # 注意这里的过滤方法是filter而不是filter_by
+        return Post.query.join(Follow,Follow.followed_id == Post.author_id).filter(Follow.follower_id == self.id)
+
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')

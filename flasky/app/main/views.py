@@ -5,7 +5,7 @@
 # @Software: PyCharm
 
 from datetime import datetime
-from flask import render_template, session, redirect, url_for,flash,request,abort
+from flask import render_template, session, redirect, url_for,flash,request,abort,make_response
 from . import main
 from .forms import NameForm
 from .. import db
@@ -30,12 +30,37 @@ def index():
         db.session.commit()
         return redirect(url_for('.index'))
 
+    # 添加显示所有用户的博客还是只显示关注用户的博客
+    show_followed = False
+    if current_user.is_authenticated:
+        show_followed = bool(request.cookies.get('show_followed',''))
+    if show_followed:
+        query = current_user.followed_posts
+    else:
+        query = Post.query
+
     # 修改首页路由，添加博客分页功能，也就是在每次查询数据库时，使用paginate函数返回一定数量的博客，返回的是一个Pagination类对象
     page = request.args.get('page',1,type=int)
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+    pagination = query.order_by(Post.timestamp.desc()).paginate(
         page,per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],error_out=False)
     posts = pagination.items
-    return render_template('index.html',form=form,posts=posts,pagination=pagination,current_time=datetime.utcnow())
+    return render_template('index.html',form=form,posts=posts,
+                           show_followed=show_followed,pagination=pagination,current_time=datetime.utcnow())
+
+# 设定show_followed cookie的值在两个新路由中设定
+@main.route('/all')
+@login_required
+def show_all():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed','',max_age=30*24*60*60) #30天
+    return resp
+
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed','1',max_age=30*24*60*60)
+    return resp
 
 @main.route('/admin')
 @login_required
