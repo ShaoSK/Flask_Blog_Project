@@ -111,13 +111,16 @@ class User(UserMixin,db.Model):
                                backref=db.backref('follower', lazy='joined'),
                                lazy='dynamic',
                                cascade='all, delete-orphan')
-    # db.backref回引Follow模型,lazy参数设为joined,在一次数据库查询中完成两次查询users->follow->users
+    # db.backref回引Follow模型,添加相关参数-lazy参数设为joined,在一次数据库查询中完成两次查询users->follow->users
     # # lazy='dynamic'在User一侧设置这个参数，关系属性不会直接返回记录，而是返回查询对象，可以添加过滤器
     followers = db.relationship('Follow',
                                 foreign_keys=[Follow.followed_id],
                                 backref=db.backref('followed', lazy='joined'),
                                 lazy='dynamic',
                                 cascade='all, delete-orphan')
+
+    # 与Comment建立一对多关系
+    comments = db.relationship('Comment',backref='author',lazy='dynamic')
 
     # 重写init方法，在用户创建时，判断电子邮件是否是管理员，如果是，直接赋予管理员角色，而不是普通User角色
     def __init__(self,**kwargs):
@@ -236,6 +239,9 @@ class Post(db.Model):
     # 增加字段，在服务器端将客户端传来的markdown文本转换为html永久存储在数据库中，直接调用html显示即可
     body_html = db.Column(db.Text)
 
+    # 建立与Comment的一对多关系,反向在Comment中定义了post博客实例
+    comments = db.relationship('Comment',backref='post',lazy='dynamic')
+
     @staticmethod
     def on_change_body(target,value,oldvalue,initiator):
         allowed_tags = ['a','abbr','acronym','b','blockquote','code','em','code','em','i','li','ol','pre','strong','ul','h1','h2','h3','p']
@@ -245,6 +251,26 @@ class Post(db.Model):
         ))
 # 将Post的on_change_body方法注册到body字段，只要 body 字段设了新值，这个函数就会自动被调用
 db.event.listen(Post.body, 'set', Post.on_change_body)
+
+# 定义评论模型
+class Comment(db.Model):
+    __tablename__='comment'
+    id = db.Column(db.Integer,primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime,index=True,default=datetime.utcnow)
+    # Comment模型几乎和Post模型一模一样，只是多了一个disabled字段，协管员通过这个字段查禁不当评论。
+    disabled = db.Column(db.Boolean)
+    author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
+    post_id = db.Column(db.Integer,db.ForeignKey('posts.id'))
+
+    @staticmethod
+    def on_change_body(target,value,oldvalue,initiator):
+        allowed_tags = ['a','abbr','acronym','b','code','em','i','strong']
+        target.body_html = bleach.linkify(bleach.clean(markdown(value,output_format='html'),
+                                                       tags=allowed_tags,strip=True))
+
+db.event.listen(Comment.body,'set',Comment.on_change_body)
 
 # 自定义的匿名用户类
 class AnonymousUser(AnonymousUserMixin):

@@ -1,7 +1,25 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "_macros.html" as macros %}
+{# 评论和某个博客URL展示页面 #}
 
 {% block title %}Flasky - Post{% endblock %}
 
 {% block page_content %}
 {% include '_posts.html' %}
+{#这里的comments是URL片段中滚动条的初始位置#}
+<h4 id="comments">Comments</h4>
+{# 只有已登录用户才可以加载评论表单 #}
+{% if current_user.can(Permission.COMMENT) %}
+<div class="comment-form">
+    {{ wtf.quick_form(form) }}
+</div>
+{% endif %}
+{% include "_comments.html" %}
+{% if pagination %}
+<div class="pagination">
+{#这里的fragment='#comment'和id=posts[0].id是url_for的**kwargs参数#}
+    {{ macros.pagination_widget(pagination,'.post',fragment='#comment',id=posts[0].id) }}
+</div>
+{% endif %}
 {% endblock %}

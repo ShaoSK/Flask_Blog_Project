@@ -1,5 +1,5 @@
 {#构建分页导航,注意是导航,就是下面的那个条条，macro 是flask中的宏，类似于定义一个函数，供其他模板调用#}
-{% macro pagination_widget(pagination,endpoint) %}
+{% macro pagination_widget(pagination,endpoint,fragment='') %}
 <ul class="pagination">
     {# disabled是CSS的类 #}
     <li {% if not pagination.has_prev %} class="disabled"{% endif %}>
@@ -14,11 +14,11 @@
             {% if p == pagination.page %}
             {# active CSS类，高亮显示，这里if的作用就是添加一个当前页面的高亮显示 #}
             <li class="active">
-                <a href="{{ url_for(endpoint,page=p,**kwargs) }}">{{ p }}</a>
+                <a href="{{ url_for(endpoint,page=p,**kwargs) }}{{ fragment }}">{{ p }}</a>
             </li>
             {% else %}
             <li>
-                <a href="{{ url_for(endpoint,page=p,**kwargs) }}">{{ p }}</a>
+                <a href="{{ url_for(endpoint,page=p,**kwargs) }}{{ fragment }}">{{ p }}</a>
             </li>
             {% endif %}
         {% else %}

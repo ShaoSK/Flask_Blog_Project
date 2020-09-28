@@ -9,7 +9,7 @@ from flask import render_template, session, redirect, url_for,flash,request,abor
 from . import main
 from .forms import NameForm
 from .. import db
-from app.models import User,Role
+from app.models import User,Role,Comment
 from app.email import send_email
 from config import config
 import os
@@ -17,7 +17,7 @@ from flask import current_app
 from flask_login import login_required, current_user
 from ..decorators import admin_required,permission_required
 from ..models import Permission,Post
-from .forms import EditProfileForm,EditProfileAdminForm,PostForm
+from .forms import EditProfileForm,EditProfileAdminForm,PostForm,CommentForm
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
@@ -133,12 +133,31 @@ def edit_profile_admin(id):
     return render_template('edit_profile.html',form=form,user=user)
 
 # 定义路由，生成博客的url链接
-@main.route('/post/<int:id>')
+# 修改博客路由，展示博客评论
+@main.route('/post/<int:id>',methods=['GET','POST'])
 def post(id):
     post = Post.query.get_or_404(id)
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(body=form.body.data,post=post,author=current_user._get_current_object())
+        db.session.add(comment)
+        db.session.commit()
+        flash('Your comment has been published!')
+        # 这里的return 可以看到增加了额外的page参数，这个参数可以在request中被捕获到
+        return redirect(url_for('.post',id=post.id,page=-1))
+    page = request.args.get('page',1,type=int)
+    # 如果page=-1，即有新评论提交，要重新计算评论总数
+    if page == -1:
+        # 这里通过反向外键，直接获取博客中的所有评论数量
+        page = (post.comments.count()-1)//current_app.config['FLASKY_COMMENTS_PER_PAGE']+1
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(
+        page,per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],error_out=False
+    )
+    comments = pagination.items
+
     # 写成[post]的原因是index.html和user.html都使用了_posts.html，都以列表的形式 循环for in 展示了许多博客，
     # post.html也使用了_posts.html，但只有 “一个” post,写成[post]方便在_posts.html调用
-    return render_template('post.html',posts=[post])
+    return render_template('post.html',posts=[post],form=form,comments=comments,pagination=pagination)
 
 # 博客文章编辑器路由
 @main.route('/edit/<int:id>',methods=['GET','POST'])

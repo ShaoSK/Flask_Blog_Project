@@ -18,6 +18,7 @@ class Config:
     # 分页配置，每一页展示多少博客数量
     FLASKY_POSTS_PER_PAGE = 20
     FLASKY_FOLLOWERS_PER_PAGE = 50
+    FLASKY_COMMENTS_PER_PAGE = 30
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     FLASK_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASK_MAIL_SENDER = '1165850025@qq.com'

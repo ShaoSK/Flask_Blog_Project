@@ -37,6 +37,13 @@
                     <span class="label label-danger">Edit [Admin]</span>
                 </a>
                 {% endif %}
+                {# 在这里加的这个#comments参数什么用？ #}
+                {# 这是URL后缀的一种写法，用于指定加载页面后滚动条的初始位置，Web浏览器会寻找id=comments的元素
+                   并滚动到初始位置 ，在这里的初始位置是post.html中的Comment标题
+                   除此之外分页导航的宏也需要加上#comments片段 ,并且在调用宏是，需要加上片段参数#}
+                <a href="{{ url_for('.post', id=post.id) }}#comments">
+                    <span class="label label-primary">{{ post.comments.count() }} Comments</span>
+                </a>
             </div>
 
         </div>
