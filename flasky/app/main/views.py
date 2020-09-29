@@ -62,17 +62,17 @@ def show_followed():
     resp.set_cookie('show_followed','1',max_age=30*24*60*60)
     return resp
 
-@main.route('/admin')
-@login_required
-@admin_required
-def for_admin_only():
-    return "For administrators!"
+# @main.route('/admin')
+# @login_required
+# @admin_required
+# def for_admin_only():
+#     return "For administrators!"
 
-@main.route('/moderate')
-@login_required
-@permission_required(Permission.MODERATE)
-def for_moderator_only():
-    return "For comment moderators!"
+# @main.route('/moderate')
+# @login_required
+# @permission_required(Permission.MODERATE)
+# def for_moderator_only():
+#     return "For comment moderators!"
 
 # 为每一个用户创建资料可视化页面
 # 改动资料页面，用以获取用户发表的文章列表
@@ -158,6 +158,40 @@ def post(id):
     # 写成[post]的原因是index.html和user.html都使用了_posts.html，都以列表的形式 循环for in 展示了许多博客，
     # post.html也使用了_posts.html，但只有 “一个” post,写成[post]方便在_posts.html调用
     return render_template('post.html',posts=[post],form=form,comments=comments,pagination=pagination)
+
+@main.route('/moderate')
+@login_required
+@permission_required(Permission.MODERATE)
+def moderate():
+    page = request.args.get('page',1,type=int)
+    pagination = Comment.query.order_by(Comment.timestamp.desc()).paginate(
+        page,per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],error_out=False
+    )
+    comments = pagination.items
+    return render_template('moderate.html',comments=comments,pagination=pagination,page=page)
+
+# 添加路由，用来切换评论的状态
+@main.route('/moderate/enable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE)
+def moderate_enable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = False
+    db.session.add(comment)
+    db.session.commit()
+    return redirect(url_for('.moderate',page=request.args.get('page',1,type=int)))
+
+@main.route('/moderate/disable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE)
+def moderate_disable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = True
+    db.session.add(comment)
+    db.session.commit()
+    return redirect(url_for('.moderate',page=request.args.get('page',1,type=int)))
+
+
 
 # 博客文章编辑器路由
 @main.route('/edit/<int:id>',methods=['GET','POST'])
