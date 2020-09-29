@@ -2,7 +2,10 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% import "_macros.html" as macros %}
 {# 评论和某个博客URL展示页面 #}
-
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+{% endblock %}
 {% block title %}Flasky - Post{% endblock %}
 
 {% block page_content %}
